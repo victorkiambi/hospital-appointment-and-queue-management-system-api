@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mariadb:
+    image: mariadb:11.3
+    container_name: db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: medbook_db
+      MYSQL_USER: medbook_user
+      MYSQL_PASSWORD: medbook_pass
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data: 
