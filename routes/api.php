@@ -1,3 +1,5 @@
+<?php
+
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -11,4 +13,5 @@ Route::prefix('v1')->group(function () {
         Route::post('logout', [LogoutController::class, 'logout']);
         Route::get('user', [UserController::class, 'profile']);
     });
-}); 
+});
+
