@@ -1,0 +1,724 @@
+openapi: 3.0.3
+info:
+  title: Medbook API
+  version: 1.0.0
+  description: API for hospital appointment and queue management system
+servers:
+  - url: http://localhost/api/v1
+paths:
+  /register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+      responses:
+        '201':
+          description: User registered
+  /login:
+    post:
+      summary: Login and get token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login successful
+  /user:
+    get:
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile
+  /doctors:
+    get:
+      summary: List doctors
+      description: >
+        Returns a list of doctors. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of doctors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Doctor'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+    post:
+      summary: Create doctor
+      description: >
+        Creates a new doctor. Requires authentication via Bearer token (admin only).
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Doctor'
+            example:
+              user_id: 2
+              specialization: 'Cardiology'
+              availability:
+                monday: ['09:00-12:00', '14:00-17:00']
+                tuesday: ['09:00-12:00']
+      responses:
+        '201':
+          description: Doctor created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Doctor'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+  /doctors/{id}:
+    get:
+      summary: Get doctor by ID
+      description: >
+        Returns a single doctor by its ID. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Doctor details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Doctor'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+        '404':
+          description: Doctor not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+    put:
+      summary: Update doctor
+      description: >
+        Updates an existing doctor. Requires authentication via Bearer token (admin only).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Doctor'
+      responses:
+        '200':
+          description: Doctor updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Doctor'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+        '404':
+          description: Doctor not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+    delete:
+      summary: Delete doctor
+      description: >
+        Deletes a doctor by its ID. Requires authentication via Bearer token (admin only).
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Doctor deleted
+        '404':
+          description: Doctor not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+  /patients:
+    get:
+      summary: List patients
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of patients
+    post:
+      summary: Create patient
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '201':
+          description: Patient created
+  /patients/{id}:
+    get:
+      summary: Get patient by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Patient details
+    put:
+      summary: Update patient
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '200':
+          description: Patient updated
+    delete:
+      summary: Delete patient
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Patient deleted
+  /appointments:
+    get:
+      summary: List appointments (filterable)
+      description: >
+        Returns a list of appointments. Supports filtering by doctor_id and patient_id as query parameters.
+        Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: doctor_id
+          schema:
+            type: integer
+          description: Filter by doctor ID
+        - in: query
+          name: patient_id
+          schema:
+            type: integer
+          description: Filter by patient ID
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Appointment'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+    post:
+      summary: Create appointment
+      description: >
+        Creates a new appointment. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+            example:
+              doctor_id: 1
+              patient_id: 2
+              scheduled_at: '2024-06-01T10:00:00Z'
+              status: scheduled
+      responses:
+        '201':
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+        '409':
+          description: Double-booking detected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+  /appointments/{id}:
+    get:
+      summary: Get appointment by ID
+      description: >
+        Returns a single appointment by its ID. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Appointment details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+        '404':
+          description: Appointment not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+    put:
+      summary: Update appointment
+      description: >
+        Updates an existing appointment. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '200':
+          description: Appointment updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Appointment'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+        '404':
+          description: Appointment not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+    delete:
+      summary: Delete appointment
+      description: >
+        Deletes an appointment by its ID. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Appointment deleted
+        '404':
+          description: Appointment not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+  /queues:
+    get:
+      summary: List queue entries
+      description: >
+        Returns a list of queue entries. Supports filtering by doctor_id as a query parameter. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: doctor_id
+          schema:
+            type: integer
+          description: Filter by doctor ID
+      responses:
+        '200':
+          description: List of queue entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Queue'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+    post:
+      summary: Add to queue
+      description: >
+        Adds a patient to a doctor's queue. Requires authentication via Bearer token.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Queue'
+            example:
+              doctor_id: 1
+              patient_id: 2
+      responses:
+        '201':
+          description: Queue entry created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Queue'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
+        '409':
+          description: Patient is already in the queue for this doctor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+    /queues/{id}:
+      get:
+        summary: Get queue entry by ID
+        description: >
+          Returns a single queue entry by its ID. Requires authentication via Bearer token.
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: integer
+        responses:
+          '200':
+            description: Queue entry details
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/Queue'
+                    message:
+                      type: string
+                    errors:
+                      type: object
+                      nullable: true
+          '404':
+            description: Queue entry not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                    errors:
+                      type: object
+      put:
+        summary: Update queue entry
+        description: >
+          Updates an existing queue entry. Requires authentication via Bearer token.
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: integer
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Queue'
+        responses:
+          '200':
+            description: Queue entry updated
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/Queue'
+                    message:
+                      type: string
+                    errors:
+                      type: object
+                      nullable: true
+          '404':
+            description: Queue entry not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                    errors:
+                      type: object
+      delete:
+        summary: Delete queue entry
+        description: >
+          Deletes a queue entry by its ID. Requires authentication via Bearer token.
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: id
+            required: true
+            schema:
+              type: integer
+        responses:
+          '204':
+            description: Queue entry deleted
+          '404':
+            description: Queue entry not found
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                    errors:
+                      type: object
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    UserRegister:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        password_confirmation:
+          type: string
+        role:
+          type: string
+          enum: [admin, doctor, patient]
+    UserLogin:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    Doctor:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        specialization:
+          type: string
+        availability:
+          type: object
+    Patient:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        medical_record_number:
+          type: string
+    Appointment:
+      type: object
+      properties:
+        doctor_id:
+          type: integer
+        patient_id:
+          type: integer
+        scheduled_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [scheduled, completed, cancelled]
+    Queue:
+      type: object
+      properties:
+        doctor_id:
+          type: integer
+        patient_id:
+          type: integer
+        position:
+          type: integer
+        status:
+          type: string
+          enum: [waiting, called, completed, cancelled]
+        called_at:
+          type: string
+          format: date-time 

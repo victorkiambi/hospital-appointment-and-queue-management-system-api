@@ -12,6 +12,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [LogoutController::class, 'logout']);
         Route::get('user', [UserController::class, 'profile']);
+        Route::apiResource('doctors', \App\Http\Controllers\DoctorController::class);
+        Route::apiResource('patients', \App\Http\Controllers\PatientController::class);
+        Route::apiResource('appointments', \App\Http\Controllers\AppointmentController::class);
+        Route::apiResource('queues', \App\Http\Controllers\QueueController::class);
     });
 });
 
