@@ -16,18 +16,16 @@ class AppointmentSeeder extends Seeder
      */
     public function run(): void
     {
-        $doctors = Doctor::all();
-        $patients = Patient::all();
-        $patientCount = $patients->count();
-        $appointmentTime = now()->addDay();
-        foreach ($doctors as $dIndex => $doctor) {
-            // Assign two appointments per doctor with different patients
-            for ($i = 0; $i < 2; $i++) {
-                $patient = $patients[($dIndex * 2 + $i) % $patientCount];
+        $doctors = Doctor::orderBy('id')->get();
+        $patients = Patient::orderBy('id')->get();
+        $baseTime = Carbon::now()->addDays(1)->setTime(9, 0, 0);
+        foreach ($patients as $pIndex => $patient) {
+            foreach ($doctors as $dIndex => $doctor) {
+                $scheduledAt = $baseTime->copy()->addDays($pIndex)->addHours($dIndex * 2);
                 Appointment::updateOrCreate([
                     'doctor_id' => $doctor->id,
                     'patient_id' => $patient->id,
-                    'scheduled_at' => $appointmentTime->copy()->addDays($dIndex * 2 + $i)->format('Y-m-d H:i:s'),
+                    'scheduled_at' => $scheduledAt->format('Y-m-d H:i:s'),
                 ], [
                     'status' => 'scheduled',
                 ]);

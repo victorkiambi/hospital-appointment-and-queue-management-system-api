@@ -17,11 +17,34 @@ class DoctorController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $doctors = Doctor::with('user')->get();
+        $user = request()->user();
+        $perPage = $request->input('per_page', 20);
+        if ($user->role === 'doctor') {
+            if ($user->doctor) {
+                $doctors = Doctor::with('user')->where('id', $user->doctor->id)->get();
+                $meta = null;
+            } else {
+                $doctors = collect();
+                $meta = null;
+            }
+        } elseif ($user->role === 'admin' || $user->role === 'patient') {
+            $doctors = Doctor::with('user')->paginate($perPage);
+            $meta = [
+                'total' => $doctors->total(),
+                'per_page' => $doctors->perPage(),
+                'current_page' => $doctors->currentPage(),
+                'last_page' => $doctors->lastPage(),
+            ];
+            $doctors = $doctors->items();
+        } else {
+            $doctors = collect();
+            $meta = null;
+        }
         return response()->json([
             'data' => $doctors,
+            'meta' => $meta,
             'message' => 'Doctors fetched successfully',
             'errors' => null,
         ]);

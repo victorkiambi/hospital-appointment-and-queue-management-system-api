@@ -6,6 +6,7 @@ use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Doctor;
 use App\Models\Patient;
+use App\Models\Appointment;
 use App\Models\Queue;
 use Carbon\Carbon;
 
@@ -16,19 +17,17 @@ class QueueSeeder extends Seeder
      */
     public function run(): void
     {
-        $doctors = Doctor::all();
-        $patients = Patient::all();
-        $patientCount = $patients->count();
-        foreach ($doctors as $dIndex => $doctor) {
-            // Assign two patients per doctor in the queue
-            for ($i = 0; $i < 2; $i++) {
-                $patient = $patients[($dIndex * 2 + $i) % $patientCount];
+        $doctors = Doctor::orderBy('id')->get();
+        foreach ($doctors as $doctor) {
+            $appointments = Appointment::where('doctor_id', $doctor->id)->orderBy('scheduled_at')->get();
+            $position = 1;
+            foreach ($appointments as $appointment) {
                 Queue::updateOrCreate([
                     'doctor_id' => $doctor->id,
-                    'patient_id' => $patient->id,
+                    'patient_id' => $appointment->patient_id,
                     'status' => 'waiting',
                 ], [
-                    'position' => $i + 1,
+                    'position' => $position++,
                     'called_at' => null,
                 ]);
             }

@@ -30,9 +30,13 @@ class LoginController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        $userData = $user->toArray();
+        $userData['doctor_id'] = $user->doctor ? $user->doctor->id : null;
+        $userData['patient_id'] = $user->patient ? $user->patient->id : null;
+
         return response()->json([
             'data' => [
-                'user' => $user,
+                'user' => $userData,
                 'token' => $token,
             ],
             'message' => 'Login successful',

@@ -17,11 +17,34 @@ class PatientController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $patients = Patient::with('user')->get();
+        $user = request()->user();
+        $perPage = $request->input('per_page', 20);
+        if ($user->role === 'patient') {
+            if ($user->patient) {
+                $patients = Patient::with('user')->where('id', $user->patient->id)->get();
+                $meta = null;
+            } else {
+                $patients = collect();
+                $meta = null;
+            }
+        } elseif ($user->role === 'admin') {
+            $patients = Patient::with('user')->paginate($perPage);
+            $meta = [
+                'total' => $patients->total(),
+                'per_page' => $patients->perPage(),
+                'current_page' => $patients->currentPage(),
+                'last_page' => $patients->lastPage(),
+            ];
+            $patients = $patients->items();
+        } else {
+            $patients = collect();
+            $meta = null;
+        }
         return response()->json([
             'data' => $patients,
+            'meta' => $meta,
             'message' => 'Patients fetched successfully',
             'errors' => null,
         ]);

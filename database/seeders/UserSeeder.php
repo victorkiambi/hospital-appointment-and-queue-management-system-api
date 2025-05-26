@@ -13,26 +13,32 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create specific users for each role
+        // Admin
         User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@example.com',
             'role' => 'admin',
             'password' => Hash::make('password'),
         ]);
-        User::factory()->create([
-            'name' => 'Doctor User',
-            'email' => 'doctor@example.com',
-            'role' => 'doctor',
-            'password' => Hash::make('password'),
-        ]);
-        User::factory()->create([
-            'name' => 'Patient User',
-            'email' => 'patient@example.com',
-            'role' => 'patient',
-            'password' => Hash::make('password'),
-        ]);
-        // Create additional random users
-        User::factory(7)->create();
+
+        // Doctors
+        for ($i = 1; $i <= 5; $i++) {
+            User::factory()->create([
+                'name' => "Doctor $i",
+                'email' => "doctor$i@example.com",
+                'role' => 'doctor',
+                'password' => Hash::make('password'),
+            ]);
+        }
+
+        // Patients
+        for ($i = 1; $i <= 5; $i++) {
+            User::factory()->create([
+                'name' => "Patient $i",
+                'email' => "patient$i@example.com",
+                'role' => 'patient',
+                'password' => Hash::make('password'),
+            ]);
+        }
     }
 }

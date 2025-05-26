@@ -14,14 +14,8 @@ class PatientSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create multiple patients with unique users
-        for ($i = 1; $i <= 10; $i++) {
-            $user = User::factory()->create([
-                'name' => 'Patient ' . $i,
-                'email' => 'patient' . $i . '@example.com',
-                'role' => 'patient',
-                'password' => bcrypt('password'),
-            ]);
+        $patientUsers = User::where('role', 'patient')->orderBy('id')->get();
+        foreach ($patientUsers as $i => $user) {
             Patient::updateOrCreate([
                 'user_id' => $user->id,
             ], [

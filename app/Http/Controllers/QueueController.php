@@ -8,24 +8,67 @@ use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Events\PatientJoinedQueue;
+use App\Events\PatientLeftQueue;
+use App\Events\PatientCalled;
+use App\Events\QueuePositionChanged;
 
 class QueueController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(Queue::class, 'queue');
+    }
+
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
+        $user = $request->user();
+        $perPage = $request->input('per_page', 20);
         $query = Queue::with(['doctor.user', 'patient.user'])->orderBy('doctor_id')->orderBy('position');
 
-        if ($request->has('doctor_id')) {
-            $query->where('doctor_id', $request->doctor_id);
+        if ($user->role === 'patient') {
+            if ($user->patient) {
+                $query->where('patient_id', $user->patient->id);
+            } else {
+                return response()->json([
+                    'data' => [],
+                    'meta' => null,
+                    'message' => 'No queue entries found for this patient.',
+                    'errors' => null,
+                ]);
+            }
+        } elseif ($user->role === 'doctor') {
+            if ($user->doctor) {
+                $query->where('doctor_id', $user->doctor->id);
+            } else {
+                return response()->json([
+                    'data' => [],
+                    'meta' => null,
+                    'message' => 'No queue entries found for this doctor.',
+                    'errors' => null,
+                ]);
+            }
+        } else {
+            // Admin: can filter by doctor_id if provided
+            if ($request->has('doctor_id')) {
+                $query->where('doctor_id', $request->doctor_id);
+            }
         }
 
-        $queues = $query->get();
+        $queues = $query->paginate($perPage);
+        $meta = [
+            'total' => $queues->total(),
+            'per_page' => $queues->perPage(),
+            'current_page' => $queues->currentPage(),
+            'last_page' => $queues->lastPage(),
+        ];
 
         return response()->json([
-            'data' => $queues,
+            'data' => $queues->items(),
+            'meta' => $meta,
             'message' => 'Queue entries fetched successfully',
             'errors' => null,
         ]);
@@ -68,6 +111,7 @@ class QueueController extends Controller
             'position' => $position,
             'status' => 'waiting',
         ]);
+        event(new PatientJoinedQueue($queue));
         return response()->json([
             'data' => $queue,
             'message' => 'Patient added to queue',
@@ -97,15 +141,8 @@ class QueueController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Queue $queue)
     {
-        $queue = Queue::find($id);
-        if (!$queue) {
-            return response()->json([
-                'message' => 'Queue entry not found',
-                'errors' => ['id' => ['Queue entry not found']],
-            ], 404);
-        }
         $validator = Validator::make($request->all(), [
             'status' => 'sometimes|required|string|in:waiting,called,completed,cancelled',
             'position' => 'sometimes|required|integer|min:1',
@@ -117,7 +154,15 @@ class QueueController extends Controller
                 'errors' => $validator->errors(),
             ], 422);
         }
+        $originalStatus = $queue->status;
+        $originalPosition = $queue->position;
         $queue->update($request->only(['status', 'position', 'called_at']));
+        // Dispatch granular events
+        if ($originalStatus !== $queue->status && $queue->status === 'called') {
+            event(new PatientCalled($queue));
+        } elseif ($originalPosition !== $queue->position) {
+            event(new QueuePositionChanged($queue));
+        }
         return response()->json([
             'data' => $queue,
             'message' => 'Queue entry updated successfully',
@@ -128,15 +173,9 @@ class QueueController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Queue $queue)
     {
-        $queue = Queue::find($id);
-        if (!$queue) {
-            return response()->json([
-                'message' => 'Queue entry not found',
-                'errors' => ['id' => ['Queue entry not found']],
-            ], 404);
-        }
+        event(new PatientLeftQueue($queue));
         $queue->delete();
         return response()->json([
             'data' => null,
