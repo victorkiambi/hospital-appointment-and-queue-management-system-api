@@ -7,6 +7,11 @@ use App\Models\Doctor;
 use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\StoreAppointmentRequest;
+use App\Http\Requests\UpdateAppointmentRequest;
+use App\Http\Resources\AppointmentResource;
+use App\Http\Resources\DoctorResource;
+use App\Http\Resources\PatientResource;
 
 class AppointmentController extends Controller
 {
@@ -65,7 +70,7 @@ class AppointmentController extends Controller
         ];
 
         return response()->json([
-            'data' => $appointments->items(),
+            'data' => AppointmentResource::collection($appointments->items()),
             'meta' => $meta,
             'message' => 'Appointments fetched successfully',
             'errors' => null,
@@ -75,20 +80,9 @@ class AppointmentController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreAppointmentRequest $request)
     {
         $user = $request->user();
-        $validator = Validator::make($request->all(), [
-            'doctor_id' => 'required|exists:doctors,id',
-            'scheduled_at' => 'required|date_format:Y-m-d H:i:s',
-            'status' => 'sometimes|string|in:scheduled,completed,cancelled',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
         // If patient, force patient_id to their own
         if ($user->role === 'patient') {
             $patient = $user->patient;
@@ -139,8 +133,9 @@ class AppointmentController extends Controller
             'scheduled_at' => $request->scheduled_at,
             'status' => $request->status ?? 'scheduled',
         ]);
+        $appointment->load(['doctor.user', 'patient.user']);
         return response()->json([
-            'data' => $appointment,
+            'data' => new AppointmentResource($appointment),
             'message' => 'Appointment created successfully',
             'errors' => null,
         ], 201);
@@ -159,7 +154,7 @@ class AppointmentController extends Controller
             ], 404);
         }
         return response()->json([
-            'data' => $appointment,
+            'data' => new AppointmentResource($appointment),
             'message' => 'Appointment fetched successfully',
             'errors' => null,
         ]);
@@ -168,7 +163,7 @@ class AppointmentController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(UpdateAppointmentRequest $request, $id)
     {
         $appointment = Appointment::find($id);
         if (!$appointment) {
@@ -176,18 +171,6 @@ class AppointmentController extends Controller
                 'message' => 'Appointment not found',
                 'errors' => ['id' => ['Appointment not found']],
             ], 404);
-        }
-        $validator = Validator::make($request->all(), [
-            'doctor_id' => 'sometimes|required|exists:doctors,id',
-            'patient_id' => 'sometimes|required|exists:patients,id',
-            'scheduled_at' => 'sometimes|required|date_format:Y-m-d H:i:s',
-            'status' => 'sometimes|string|in:scheduled,completed,cancelled',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
         }
         // Prevent double-booking for doctor at the same time (if changing doctor or scheduled_at)
         if ($request->has(['doctor_id', 'scheduled_at'])) {
@@ -203,9 +186,10 @@ class AppointmentController extends Controller
                 ], 409);
             }
         }
-        $appointment->update($request->only(['doctor_id', 'patient_id', 'scheduled_at', 'status']));
+        $appointment->update($request->validated());
+        $appointment->load(['doctor.user', 'patient.user']);
         return response()->json([
-            'data' => $appointment,
+            'data' => new AppointmentResource($appointment),
             'message' => 'Appointment updated successfully',
             'errors' => null,
         ]);

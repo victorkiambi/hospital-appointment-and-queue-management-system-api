@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
+use App\Http\Resources\UserResource;
 
 class AdminUserController extends Controller
 {
@@ -29,7 +32,7 @@ class AdminUserController extends Controller
         $perPage = $request->input('per_page', 10);
         $users = User::paginate($perPage);
         return response()->json([
-            'data' => $users->items(),
+            'data' => UserResource::collection($users->items()),
             'meta' => [
                 'total' => $users->total(),
                 'per_page' => $users->perPage(),
@@ -51,40 +54,25 @@ class AdminUserController extends Controller
             ], 404);
         }
         return response()->json([
-            'data' => $user,
+            'data' => new UserResource($user),
             'message' => 'User fetched successfully',
             'errors' => null,
         ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8',
-            'role' => 'required|string|in:admin,doctor,patient',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => $request->role,
-        ]);
+        $data = $request->validated();
+        $data['password'] = Hash::make($data['password']);
+        $user = User::create($data);
         return response()->json([
-            'data' => $user,
+            'data' => new UserResource($user),
             'message' => 'User created successfully',
             'errors' => null,
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateUserRequest $request, $id)
     {
         $user = User::find($id);
         if (!$user) {
@@ -93,25 +81,13 @@ class AdminUserController extends Controller
                 'errors' => ['id' => ['User not found']],
             ], 404);
         }
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $id,
-            'password' => 'sometimes|required|string|min:8',
-            'role' => 'sometimes|required|string|in:admin,doctor,patient',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-        $data = $request->only(['name', 'email', 'role']);
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
+        $data = $request->validated();
+        if (isset($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
         }
         $user->update($data);
         return response()->json([
-            'data' => $user,
+            'data' => new UserResource($user),
             'message' => 'User updated successfully',
             'errors' => null,
         ]);

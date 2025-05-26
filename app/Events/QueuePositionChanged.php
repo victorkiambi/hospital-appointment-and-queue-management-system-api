@@ -40,8 +40,9 @@ class QueuePositionChanged implements ShouldBroadcast
 
     public function broadcastWith()
     {
+        $queue = $this->queue->fresh(['doctor', 'patient']);
         return [
-            'queue' => $this->queue->toArray(),
+            'queue' => $queue->toArray(),
         ];
     }
 }

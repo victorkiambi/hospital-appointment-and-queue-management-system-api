@@ -12,6 +12,9 @@ use App\Events\PatientJoinedQueue;
 use App\Events\PatientLeftQueue;
 use App\Events\PatientCalled;
 use App\Events\QueuePositionChanged;
+use App\Http\Requests\StoreQueueRequest;
+use App\Http\Requests\UpdateQueueRequest;
+use App\Http\Resources\QueueResource;
 
 class QueueController extends Controller
 {
@@ -67,7 +70,7 @@ class QueueController extends Controller
         ];
 
         return response()->json([
-            'data' => $queues->items(),
+            'data' => QueueResource::collection($queues->items()),
             'meta' => $meta,
             'message' => 'Queue entries fetched successfully',
             'errors' => null,
@@ -77,21 +80,12 @@ class QueueController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreQueueRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'doctor_id' => 'required|exists:doctors,id',
-            'patient_id' => 'required|exists:patients,id',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
+        $validated = $request->validated();
         // Prevent duplicate queue entry for same doctor/patient with status 'waiting'
-        $exists = Queue::where('doctor_id', $request->doctor_id)
-            ->where('patient_id', $request->patient_id)
+        $exists = Queue::where('doctor_id', $validated['doctor_id'])
+            ->where('patient_id', $validated['patient_id'])
             ->where('status', 'waiting')
             ->exists();
         if ($exists) {
@@ -101,19 +95,19 @@ class QueueController extends Controller
             ], 409);
         }
         // Assign next position in queue for this doctor
-        $maxPosition = Queue::where('doctor_id', $request->doctor_id)
+        $maxPosition = Queue::where('doctor_id', $validated['doctor_id'])
             ->where('status', 'waiting')
             ->max('position');
         $position = $maxPosition ? $maxPosition + 1 : 1;
         $queue = Queue::create([
-            'doctor_id' => $request->doctor_id,
-            'patient_id' => $request->patient_id,
+            'doctor_id' => $validated['doctor_id'],
+            'patient_id' => $validated['patient_id'],
             'position' => $position,
             'status' => 'waiting',
         ]);
         event(new PatientJoinedQueue($queue));
         return response()->json([
-            'data' => $queue,
+            'data' => new QueueResource($queue->load(['doctor', 'patient'])),
             'message' => 'Patient added to queue',
             'errors' => null,
         ], 201);
@@ -132,7 +126,7 @@ class QueueController extends Controller
             ], 404);
         }
         return response()->json([
-            'data' => $queue,
+            'data' => new QueueResource($queue),
             'message' => 'Queue entry fetched successfully',
             'errors' => null,
         ]);
@@ -141,19 +135,9 @@ class QueueController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Queue $queue)
+    public function update(UpdateQueueRequest $request, Queue $queue)
     {
-        $validator = Validator::make($request->all(), [
-            'status' => 'sometimes|required|string|in:waiting,called,completed,cancelled',
-            'position' => 'sometimes|required|integer|min:1',
-            'called_at' => 'sometimes|nullable|date_format:Y-m-d H:i:s',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
+        $validated = $request->validated();
         $originalStatus = $queue->status;
         $originalPosition = $queue->position;
         $queue->update($request->only(['status', 'position', 'called_at']));
@@ -164,7 +148,7 @@ class QueueController extends Controller
             event(new QueuePositionChanged($queue));
         }
         return response()->json([
-            'data' => $queue,
+            'data' => new QueueResource($queue->load(['doctor', 'patient'])),
             'message' => 'Queue entry updated successfully',
             'errors' => null,
         ]);

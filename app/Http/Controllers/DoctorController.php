@@ -6,6 +6,9 @@ use App\Models\Doctor;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\StoreDoctorRequest;
+use App\Http\Requests\UpdateDoctorRequest;
+use App\Http\Resources\DoctorResource;
 
 class DoctorController extends Controller
 {
@@ -30,20 +33,20 @@ class DoctorController extends Controller
                 $meta = null;
             }
         } elseif ($user->role === 'admin' || $user->role === 'patient') {
-            $doctors = Doctor::with('user')->paginate($perPage);
+            $paginated = Doctor::with('user')->paginate($perPage);
             $meta = [
-                'total' => $doctors->total(),
-                'per_page' => $doctors->perPage(),
-                'current_page' => $doctors->currentPage(),
-                'last_page' => $doctors->lastPage(),
+                'total' => $paginated->total(),
+                'per_page' => $paginated->perPage(),
+                'current_page' => $paginated->currentPage(),
+                'last_page' => $paginated->lastPage(),
             ];
-            $doctors = $doctors->items();
+            $doctors = $paginated->items();
         } else {
             $doctors = collect();
             $meta = null;
         }
         return response()->json([
-            'data' => $doctors,
+            'data' => DoctorResource::collection($doctors),
             'meta' => $meta,
             'message' => 'Doctors fetched successfully',
             'errors' => null,
@@ -53,26 +56,12 @@ class DoctorController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreDoctorRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id|unique:doctors,user_id',
-            'specialization' => 'required|string|max:255',
-            'availability' => 'nullable|array',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-        $doctor = Doctor::create([
-            'user_id' => $request->user_id,
-            'specialization' => $request->specialization,
-            'availability' => $request->availability,
-        ]);
+        $doctor = Doctor::create($request->validated());
+        $doctor->load('user');
         return response()->json([
-            'data' => $doctor,
+            'data' => new DoctorResource($doctor),
             'message' => 'Doctor created successfully',
             'errors' => null,
         ], 201);
@@ -91,7 +80,7 @@ class DoctorController extends Controller
             ], 404);
         }
         return response()->json([
-            'data' => $doctor,
+            'data' => new DoctorResource($doctor),
             'message' => 'Doctor fetched successfully',
             'errors' => null,
         ]);
@@ -100,7 +89,7 @@ class DoctorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(UpdateDoctorRequest $request, $id)
     {
         $doctor = Doctor::find($id);
         if (!$doctor) {
@@ -109,19 +98,10 @@ class DoctorController extends Controller
                 'errors' => ['id' => ['Doctor not found']],
             ], 404);
         }
-        $validator = Validator::make($request->all(), [
-            'specialization' => 'sometimes|required|string|max:255',
-            'availability' => 'nullable|array',
-        ]);
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-        $doctor->update($request->only(['specialization', 'availability']));
+        $doctor->update($request->validated());
+        $doctor->load('user');
         return response()->json([
-            'data' => $doctor,
+            'data' => new DoctorResource($doctor),
             'message' => 'Doctor updated successfully',
             'errors' => null,
         ]);
