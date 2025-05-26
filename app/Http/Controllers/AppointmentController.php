@@ -83,6 +83,12 @@ class AppointmentController extends Controller
     public function store(StoreAppointmentRequest $request)
     {
         $user = $request->user();
+        if (!in_array($user->role, ['patient', 'admin'])) {
+            return response()->json([
+                'message' => 'Only patients and admins can book appointments.',
+                'errors' => ['user' => ['Only patients and admins can book appointments.']],
+            ], 403);
+        }
         // If patient, force patient_id to their own
         if ($user->role === 'patient') {
             $patient = $user->patient;
@@ -134,6 +140,29 @@ class AppointmentController extends Controller
             'status' => $request->status ?? 'scheduled',
         ]);
         $appointment->load(['doctor.user', 'patient.user']);
+
+        // Auto-add to queue for same-day appointments
+        $scheduledDate = \Carbon\Carbon::parse($appointment->scheduled_at)->toDateString();
+        $today = \Carbon\Carbon::now()->toDateString();
+        if ($scheduledDate === $today) {
+            $exists = \App\Models\Queue::where('doctor_id', $appointment->doctor_id)
+                ->where('patient_id', $appointment->patient_id)
+                ->where('status', 'waiting')
+                ->exists();
+            if (!$exists) {
+                $maxPosition = \App\Models\Queue::where('doctor_id', $appointment->doctor_id)
+                    ->where('status', 'waiting')
+                    ->max('position');
+                $position = $maxPosition ? $maxPosition + 1 : 1;
+                \App\Models\Queue::create([
+                    'doctor_id' => $appointment->doctor_id,
+                    'patient_id' => $appointment->patient_id,
+                    'position' => $position,
+                    'status' => 'waiting',
+                ]);
+            }
+        }
+
         return response()->json([
             'data' => new AppointmentResource($appointment),
             'message' => 'Appointment created successfully',
@@ -198,15 +227,16 @@ class AppointmentController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Appointment $appointment)
     {
-        $appointment = Appointment::find($id);
-        if (!$appointment) {
-            return response()->json([
-                'message' => 'Appointment not found',
-                'errors' => ['id' => ['Appointment not found']],
-            ], 404);
-        }
+        $this->authorize('delete', $appointment);
+
+        // Remove related queue entry if it exists
+        \App\Models\Queue::where('doctor_id', $appointment->doctor_id)
+            ->where('patient_id', $appointment->patient_id)
+            ->where('status', 'waiting')
+            ->delete();
+
         $appointment->delete();
         return response()->json([
             'data' => null,
