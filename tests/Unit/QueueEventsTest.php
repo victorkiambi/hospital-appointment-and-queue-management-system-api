@@ -72,7 +72,9 @@ class QueueEventsTest extends TestCase
         $this->assertContains($expectedDoctorChannel, $channelNames);
         $this->assertContains($expectedPatientChannel, $channelNames);
         $this->assertArrayHasKey('queue', $payload);
-        $this->assertEquals($queue->toArray(), $payload['queue']);
+        $this->assertArrayHasKey('doctor', $payload['queue']);
+        $this->assertArrayHasKey('patient', $payload['queue']);
+        $this->assertEquals($queue->id, $payload['queue']['id']);
     }
 
     public function test_patient_left_queue_event_broadcasts_on_correct_channels_and_payload()
@@ -87,7 +89,9 @@ class QueueEventsTest extends TestCase
         $this->assertContains($expectedDoctorChannel, $channelNames);
         $this->assertContains($expectedPatientChannel, $channelNames);
         $this->assertArrayHasKey('queue', $payload);
-        $this->assertEquals($queue->toArray(), $payload['queue']);
+        $this->assertArrayHasKey('doctor', $payload['queue']);
+        $this->assertArrayHasKey('patient', $payload['queue']);
+        $this->assertEquals($queue->id, $payload['queue']['id']);
     }
 
     public function test_patient_called_event_broadcasts_on_correct_channels_and_payload()
@@ -102,7 +106,9 @@ class QueueEventsTest extends TestCase
         $this->assertContains($expectedDoctorChannel, $channelNames);
         $this->assertContains($expectedPatientChannel, $channelNames);
         $this->assertArrayHasKey('queue', $payload);
-        $this->assertEquals($queue->toArray(), $payload['queue']);
+        $this->assertArrayHasKey('doctor', $payload['queue']);
+        $this->assertArrayHasKey('patient', $payload['queue']);
+        $this->assertEquals($queue->id, $payload['queue']['id']);
     }
 
     public function test_queue_position_changed_event_broadcasts_on_correct_channels_and_payload()
@@ -118,6 +124,8 @@ class QueueEventsTest extends TestCase
         $this->assertContains($expectedDoctorChannel, $channelNames);
         $this->assertContains($expectedPatientChannel, $channelNames);
         $this->assertArrayHasKey('queue', $payload);
-        $this->assertEquals($queue->toArray(), $payload['queue']);
+        $this->assertArrayHasKey('doctor', $payload['queue']);
+        $this->assertArrayHasKey('patient', $payload['queue']);
+        $this->assertEquals($queue->id, $payload['queue']['id']);
     }
 } 

@@ -160,7 +160,21 @@ class QueueController extends Controller
     public function destroy(Queue $queue)
     {
         event(new PatientLeftQueue($queue));
+        $doctorId = $queue->doctor_id;
         $queue->delete();
+
+        // Reorder remaining queue entries for this doctor
+        $remaining = Queue::where('doctor_id', $doctorId)
+            ->where('status', 'waiting')
+            ->orderBy('position')
+            ->get();
+
+        $position = 1;
+        foreach ($remaining as $entry) {
+            $entry->position = $position++;
+            $entry->save();
+        }
+
         return response()->json([
             'data' => null,
             'message' => 'Queue entry deleted successfully',

@@ -28,16 +28,16 @@ class LoginController extends Controller
             ], 422);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
         $userData = $user->toArray();
         $userData['doctor_id'] = $user->doctor ? $user->doctor->id : null;
         $userData['patient_id'] = $user->patient ? $user->patient->id : null;
 
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         return response()->json([
+            'token' => $token,
             'data' => [
                 'user' => $userData,
-                'token' => $token,
             ],
             'message' => 'Login successful',
             'errors' => null,

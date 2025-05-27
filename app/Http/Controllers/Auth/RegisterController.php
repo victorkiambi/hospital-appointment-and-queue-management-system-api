@@ -38,12 +38,10 @@ class RegisterController extends Controller
                 'user_id' => $user->id,
                 'medical_record_number' => $request->medical_record_number,
             ]);
-            $token = $user->createToken('auth_token')->plainTextToken;
             return response()->json([
                 'data' => [
                     'user' => $user,
                     'patient' => $patient,
-                    'token' => $token,
                 ],
                 'message' => 'Patient registered successfully',
                 'errors' => null,

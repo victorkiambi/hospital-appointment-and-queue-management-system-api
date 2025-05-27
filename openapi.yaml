@@ -38,6 +38,18 @@ paths:
       responses:
         '200':
           description: User profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+                  errors:
+                    type: object
+                    nullable: true
   /doctors:
     get:
       summary: List doctors
@@ -57,6 +69,13 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Doctor'
+                  meta:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      per_page: { type: integer }
+                      current_page: { type: integer }
+                      last_page: { type: integer }
                   message:
                     type: string
                   errors:
@@ -73,7 +92,12 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Doctor'
+              type: object
+              required: [user_id, specialization]
+              properties:
+                user_id: { type: integer }
+                specialization: { type: string }
+                availability: { type: object }
             example:
               user_id: 2
               specialization: 'Cardiology'
@@ -162,7 +186,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Doctor'
+              type: object
+              properties:
+                specialization: { type: string }
+                availability: { type: object }
+            example:
+              specialization: 'Neurology'
+              availability:
+                wednesday: ['10:00-13:00']
       responses:
         '200':
           description: Doctor updated
@@ -189,6 +220,21 @@ paths:
                     type: string
                   errors:
                     type: object
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  errors:
+                    type: object
+            example:
+              message: "Validation failed."
+              errors:
+                specialization: ["The specialization field is required."]
     delete:
       summary: Delete doctor
       description: >
@@ -678,15 +724,24 @@ components:
           type: string
         password:
           type: string
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [admin, doctor, patient] }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     Doctor:
       type: object
       properties:
-        user_id:
-          type: integer
-        specialization:
-          type: string
-        availability:
-          type: object
+        id: { type: integer }
+        user: { $ref: '#/components/schemas/User' }
+        specialization: { type: string }
+        availability: { type: object }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
     Patient:
       type: object
       properties:

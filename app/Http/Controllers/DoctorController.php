@@ -70,15 +70,9 @@ class DoctorController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Doctor $doctor)
     {
-        $doctor = Doctor::with('user')->find($id);
-        if (!$doctor) {
-            return response()->json([
-                'message' => 'Doctor not found',
-                'errors' => ['id' => ['Doctor not found']],
-            ], 404);
-        }
+        $doctor->load('user');
         return response()->json([
             'data' => new DoctorResource($doctor),
             'message' => 'Doctor fetched successfully',
@@ -89,15 +83,8 @@ class DoctorController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdateDoctorRequest $request, $id)
+    public function update(UpdateDoctorRequest $request, Doctor $doctor)
     {
-        $doctor = Doctor::find($id);
-        if (!$doctor) {
-            return response()->json([
-                'message' => 'Doctor not found',
-                'errors' => ['id' => ['Doctor not found']],
-            ], 404);
-        }
         $doctor->update($request->validated());
         $doctor->load('user');
         return response()->json([
@@ -110,15 +97,8 @@ class DoctorController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Doctor $doctor)
     {
-        $doctor = Doctor::find($id);
-        if (!$doctor) {
-            return response()->json([
-                'message' => 'Doctor not found',
-                'errors' => ['id' => ['Doctor not found']],
-            ], 404);
-        }
         $doctor->delete();
         return response()->json([
             'data' => null,

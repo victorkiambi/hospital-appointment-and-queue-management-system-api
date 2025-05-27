@@ -79,17 +79,10 @@ class PatientController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(Patient $patient)
     {
-        $patient = Patient::with('user')->find($id);
-        if (!$patient) {
-            return response()->json([
-                'message' => 'Patient not found',
-                'errors' => ['id' => ['Patient not found']],
-            ], 404);
-        }
         return response()->json([
-            'data' => $patient,
+            'data' => $patient->load('user'),
             'message' => 'Patient fetched successfully',
             'errors' => null,
         ]);
@@ -98,17 +91,10 @@ class PatientController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Patient $patient)
     {
-        $patient = Patient::find($id);
-        if (!$patient) {
-            return response()->json([
-                'message' => 'Patient not found',
-                'errors' => ['id' => ['Patient not found']],
-            ], 404);
-        }
         $validator = Validator::make($request->all(), [
-            'medical_record_number' => 'sometimes|required|string|max:255|unique:patients,medical_record_number,' . $id,
+            'medical_record_number' => 'sometimes|required|string|max:255|unique:patients,medical_record_number,' . $patient->id,
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -127,15 +113,8 @@ class PatientController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Patient $patient)
     {
-        $patient = Patient::find($id);
-        if (!$patient) {
-            return response()->json([
-                'message' => 'Patient not found',
-                'errors' => ['id' => ['Patient not found']],
-            ], 404);
-        }
         $patient->delete();
         return response()->json([
             'data' => null,

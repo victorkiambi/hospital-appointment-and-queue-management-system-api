@@ -13,10 +13,10 @@ class UpdateDoctorRequest extends FormRequest
     {
         // Only admins or the doctor themselves can update
         $user = auth()->user();
-        $doctorId = $this->route('doctor');
+        $doctor = $this->route('doctor');
         if (!$user) return false;
         if ($user->role === 'admin') return true;
-        if ($user->role === 'doctor' && $user->doctor && $user->doctor->id == $doctorId) return true;
+        if ($user->role === 'doctor' && $user->doctor && $user->doctor->id == $doctor->id) return true;
         return false;
     }
 

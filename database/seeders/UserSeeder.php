@@ -22,20 +22,34 @@ class UserSeeder extends Seeder
         ]);
 
         // Doctors
-        for ($i = 1; $i <= 5; $i++) {
+        $doctorNames = [
+            ['name' => 'Dr. Alice Smith', 'email' => 'alice.smith@hospital.com'],
+            ['name' => 'Dr. Bob Johnson', 'email' => 'bob.johnson@hospital.com'],
+            ['name' => 'Dr. Carol Lee', 'email' => 'carol.lee@hospital.com'],
+            ['name' => 'Dr. David Kim', 'email' => 'david.kim@hospital.com'],
+            ['name' => 'Dr. Eva Brown', 'email' => 'eva.brown@hospital.com'],
+        ];
+        foreach ($doctorNames as $doc) {
             User::factory()->create([
-                'name' => "Doctor $i",
-                'email' => "doctor$i@example.com",
+                'name' => $doc['name'],
+                'email' => $doc['email'],
                 'role' => 'doctor',
                 'password' => Hash::make('password'),
             ]);
         }
 
         // Patients
-        for ($i = 1; $i <= 5; $i++) {
+        $patientNames = [
+            ['name' => 'John Doe', 'email' => 'john.doe@example.com'],
+            ['name' => 'Jane Smith', 'email' => 'jane.smith@example.com'],
+            ['name' => 'Michael Green', 'email' => 'michael.green@example.com'],
+            ['name' => 'Emily White', 'email' => 'emily.white@example.com'],
+            ['name' => 'Chris Black', 'email' => 'chris.black@example.com'],
+        ];
+        foreach ($patientNames as $pat) {
             User::factory()->create([
-                'name' => "Patient $i",
-                'email' => "patient$i@example.com",
+                'name' => $pat['name'],
+                'email' => $pat['email'],
                 'role' => 'patient',
                 'password' => Hash::make('password'),
             ]);

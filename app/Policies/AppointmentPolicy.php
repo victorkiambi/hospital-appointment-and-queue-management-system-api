@@ -45,7 +45,8 @@ class AppointmentPolicy
      */
     public function delete(User $user, Appointment $appointment): bool
     {
-        return $user->role === 'admin';
+        return $user->role === 'admin'
+            || ($user->role === 'patient' && $appointment->patient && $appointment->patient->user_id === $user->id);
     }
 
     /**

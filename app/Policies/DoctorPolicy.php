@@ -21,7 +21,7 @@ class DoctorPolicy
      */
     public function view(User $user, Doctor $doctor): bool
     {
-        return true;
+        return $user->role === 'admin' || ($user->role === 'doctor' && $user->id === $doctor->user_id);
     }
 
     /**

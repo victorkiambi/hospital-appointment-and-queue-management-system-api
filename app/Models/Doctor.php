@@ -15,6 +15,10 @@ class Doctor extends Model
         'availability',
     ];
 
+    protected $casts = [
+        'availability' => 'array',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
