@@ -19,7 +19,6 @@ class RegisterController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
-            'medical_record_number' => 'required|string|max:255|unique:patients,medical_record_number',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -36,7 +35,7 @@ class RegisterController extends Controller
             ]);
             $patient = Patient::create([
                 'user_id' => $user->id,
-                'medical_record_number' => $request->medical_record_number,
+                'medical_record_number' => Patient::generateMedicalRecordNumber($user->id),
             ]);
             return response()->json([
                 'data' => [

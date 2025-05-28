@@ -57,7 +57,7 @@ class PatientController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|exists:users,id|unique:patients,user_id',
-            'medical_record_number' => 'required|string|max:255|unique:patients,medical_record_number',
+            // 'medical_record_number' => 'required|string|max:255|unique:patients,medical_record_number',
         ]);
         if ($validator->fails()) {
             return response()->json([
@@ -67,7 +67,7 @@ class PatientController extends Controller
         }
         $patient = Patient::create([
             'user_id' => $request->user_id,
-            'medical_record_number' => $request->medical_record_number,
+            'medical_record_number' => Patient::generateMedicalRecordNumber($request->user_id),
         ]);
         return response()->json([
             'data' => $patient,

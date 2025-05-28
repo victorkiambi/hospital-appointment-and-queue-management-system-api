@@ -48,12 +48,12 @@ class PatientControllerTest extends TestCase
         $user = User::factory()->create(['role' => 'patient']);
         $payload = [
             'user_id' => $user->id,
-            'medical_record_number' => 'MRN-12345',
         ];
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/patients', $payload);
         $response->assertStatus(201)
-            ->assertJsonPath('data.user_id', $user->id);
+            ->assertJsonPath('data.user_id', $user->id)
+            ->assertJsonPath('data.medical_record_number', \App\Models\Patient::generateMedicalRecordNumber($user->id));
     }
 
     public function test_patient_cannot_create_patient()
@@ -62,7 +62,6 @@ class PatientControllerTest extends TestCase
         $otherUser = User::factory()->create(['role' => 'patient']);
         $payload = [
             'user_id' => $otherUser->id,
-            'medical_record_number' => 'MRN-54321',
         ];
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/patients', $payload);

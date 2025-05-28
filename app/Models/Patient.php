@@ -28,4 +28,9 @@ class Patient extends Model
     {
         return $this->hasMany(Queue::class);
     }
+
+    public static function generateMedicalRecordNumber($userId)
+    {
+        return 'MRN-' . str_pad($userId, 5, '0', STR_PAD_LEFT);
+    }
 }

@@ -24,7 +24,7 @@ class StorePatientRequest extends FormRequest
     {
         return [
             'user_id' => 'required|exists:users,id|unique:patients,user_id',
-            'medical_record_number' => 'required|string|max:255|unique:patients,medical_record_number',
+            // 'medical_record_number' => 'required|string|max:255|unique:patients,medical_record_number',
         ];
     }
 }
