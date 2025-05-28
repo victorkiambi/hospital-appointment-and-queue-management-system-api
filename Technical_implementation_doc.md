@@ -181,9 +181,12 @@ We designed the schema to reflect real-world relationships and ensure data consi
 ---
 
 ## 15. Deployment
-- Environment configuration is managed via `.env` files.
-- Database migrations and seeders are used for setup.
-- (Optional) We may deploy to AWS EC2 or similar cloud infrastructure.
+
+- **Containerization:** The backend is fully containerized using a multi-stage `Dockerfile` (PHP, Nginx, Supervisor).
+- **Fly.io:** Primary deployment target. Uses `fly.toml` for configuration, persistent storage mounts, and environment variables.
+- **CI/CD:** Automated deployment via GitHub Actions (`.github/workflows/fly-deploy.yml`).
+- **Database:** Default is SQLite for simplicity. For production, configure MariaDB/MySQL or use Fly.io Postgres.
+- **Environment:** All sensitive configuration is managed via `.env` and Fly.io secrets.
 
 ---
 

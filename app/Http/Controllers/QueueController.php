@@ -105,7 +105,7 @@ class QueueController extends Controller
             'position' => $position,
             'status' => 'waiting',
         ]);
-        event(new PatientJoinedQueue($queue));
+        event(new PatientJoinedQueue($queue->withoutRelations()));
         return response()->json([
             'data' => new QueueResource($queue->load(['doctor', 'patient'])),
             'message' => 'Patient added to queue',
@@ -143,9 +143,9 @@ class QueueController extends Controller
         $queue->update($request->only(['status', 'position', 'called_at']));
         // Dispatch granular events
         if ($originalStatus !== $queue->status && $queue->status === 'called') {
-            event(new PatientCalled($queue));
+            event(new PatientCalled($queue->withoutRelations()));
         } elseif ($originalPosition !== $queue->position) {
-            event(new QueuePositionChanged($queue));
+            event(new QueuePositionChanged($queue->withoutRelations()));
         }
         return response()->json([
             'data' => new QueueResource($queue->load(['doctor', 'patient'])),
@@ -159,7 +159,7 @@ class QueueController extends Controller
      */
     public function destroy(Queue $queue)
     {
-        event(new PatientLeftQueue($queue));
+        event(new PatientLeftQueue($queue->withoutRelations()));
         $doctorId = $queue->doctor_id;
         $queue->delete();
 

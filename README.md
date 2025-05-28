@@ -71,6 +71,48 @@ php artisan serve
 ```
 - The API will be available at `http://localhost:8000/api/v1/`
 
+## Running the Backend with Docker
+
+You can run the entire backend (PHP, Nginx, and SQLite) in a container using the provided `Dockerfile`.
+
+### Build and Run the Container
+```bash
+docker build -t medbook-backend .
+docker run -p 8080:8080 --env-file .env medbook-backend
+```
+- The API will be available at `http://localhost:8080/api/v1/`
+- For persistent storage, use Docker volumes or Fly.io mounts.
+
+### Notes
+- The default setup uses SQLite for simplicity. For production, configure MariaDB/MySQL and update your `.env`.
+
+## Deploying to Fly.io
+
+The backend is ready for deployment on [Fly.io](https://fly.io/).
+
+### Prerequisites
+- Install [flyctl](https://fly.io/docs/hands-on/install-flyctl/)
+- Authenticate: `flyctl auth login`
+- Set up your Fly.io app: `flyctl launch`
+
+### Manual Deployment
+```bash
+flyctl deploy
+```
+
+### CI/CD Deployment
+- GitHub Actions workflow is set up in `.github/workflows/fly-deploy.yml`.
+- Set the `FLY_API_TOKEN` secret in your GitHub repository.
+
+### Configuration
+- App configuration is in `fly.toml`.
+- Persistent storage is mounted at `/var/www/html/storage`.
+- Environment variables are managed in Fly.io dashboard or `fly.toml`.
+
+### Database
+- By default, SQLite is used for quick deploys.
+- For production, provision a managed database (e.g., Fly.io Postgres, external MariaDB) and update `.env` accordingly.
+
 ## API Documentation
 - The OpenAPI/Swagger spec is in [`openapi.yaml`](openapi.yaml).
 - Use Swagger UI, Postman, or Insomnia to explore and test endpoints.
