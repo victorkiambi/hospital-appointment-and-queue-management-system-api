@@ -13,7 +13,7 @@ class PatientPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->role === 'admin' || $user->role === 'doctor' || $user->role === 'patient';
     }
 
     /**
@@ -21,7 +21,13 @@ class PatientPolicy
      */
     public function view(User $user, Patient $patient): bool
     {
-        return true;
+        // Admin or a doctor can view any patient profile.
+        if ($user->role === 'admin' || $user->role === 'doctor') {
+            return true;
+        }
+
+        // A patient can only view their own profile.
+        return $user->id === $patient->user_id;
     }
 
     /**
@@ -37,7 +43,13 @@ class PatientPolicy
      */
     public function update(User $user, Patient $patient): bool
     {
-        return $user->role === 'admin';
+        // Admin can update any patient profile.
+        if ($user->role === 'admin') {
+            return true;
+        }
+
+        // A patient can only update their own profile.
+        return $user->id === $patient->user_id;
     }
 
     /**

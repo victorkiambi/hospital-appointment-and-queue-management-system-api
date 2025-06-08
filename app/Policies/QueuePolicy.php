@@ -13,7 +13,7 @@ class QueuePolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return $user->role === 'admin' || $user->role === 'doctor';
     }
 
     /**
@@ -21,7 +21,17 @@ class QueuePolicy
      */
     public function view(User $user, Queue $queue): bool
     {
-        return true;
+        // Admin or the assigned doctor can view the queue entry.
+        if ($user->role === 'admin' || ($user->doctor && $user->doctor->id === $queue->doctor_id)) {
+            return true;
+        }
+
+        // The patient in the queue can view their own entry.
+        if ($user->patient && $user->patient->id === $queue->patient_id) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -38,7 +48,7 @@ class QueuePolicy
     public function update(User $user, Queue $queue): bool
     {
         return $user->role === 'admin' ||
-            ($user->role === 'doctor' && $queue->doctor && $queue->doctor->user_id === $user->id);
+            ($user->doctor && $user->doctor->id === $queue->doctor_id);
     }
 
     /**
@@ -47,7 +57,7 @@ class QueuePolicy
     public function delete(User $user, Queue $queue): bool
     {
         return $user->role === 'admin' ||
-            ($user->role === 'patient' && $queue->patient && $queue->patient->user_id === $user->id);
+            ($user->patient && $user->patient->id === $queue->patient_id);
     }
 
     /**

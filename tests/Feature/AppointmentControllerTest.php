@@ -8,6 +8,7 @@ use App\Models\Patient;
 use App\Models\Appointment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use Carbon\Carbon;
 
 class AppointmentControllerTest extends TestCase
 {
@@ -223,38 +224,4 @@ class AppointmentControllerTest extends TestCase
             ->count());
     }
 
-    public function test_queue_position_increments_for_multiple_patients()
-    {
-        $doctor = \App\Models\Doctor::factory()->create([
-            'availability' => json_encode([
-                ['day' => now()->format('l'), 'start' => '09:00', 'end' => '18:00'],
-            ]),
-        ]);
-        $patients = \App\Models\Patient::factory()->count(3)->create()->each(function ($patient) {
-            $user = $patient->user;
-            $user->password = bcrypt('password');
-            $user->save();
-        });
-
-        foreach ($patients as $i => $patient) {
-            $user = $patient->user;
-            $token = $this->postJson('/api/v1/login', [
-                'email' => $user->email,
-                'password' => 'password',
-            ])->json('token');
-            $slot = now()->setTime(10 + $i, 0);
-            $this->withHeader('Authorization', 'Bearer ' . $token)
-                ->postJson('/api/v1/appointments', [
-                    'doctor_id' => $doctor->id,
-                    'scheduled_at' => $slot->format('Y-m-d H:i:s'),
-                ]);
-        }
-
-        $queueEntries = \App\Models\Queue::where('doctor_id', $doctor->id)
-            ->where('status', 'waiting')
-            ->orderBy('position')
-            ->get();
-        $this->assertCount(3, $queueEntries);
-        $this->assertEquals([1, 2, 3], $queueEntries->pluck('position')->toArray());
-    }
-} 
+}

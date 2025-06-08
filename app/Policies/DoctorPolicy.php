@@ -13,6 +13,8 @@ class DoctorPolicy
      */
     public function viewAny(User $user): bool
     {
+        // Any authenticated user (including patients) can view the list of doctors
+        // to find a doctor and book an appointment.
         return true;
     }
 
