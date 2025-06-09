@@ -81,4 +81,36 @@ The backend is architected as a modular, scalable RESTful API using Laravel 12 (
 ## References
 - See `Technical_implementation_doc.md` for detailed requirements and design rationale.
 - See `openapi.yaml` for API specification.
-- See `README.md` for setup and usage instructions. 
+- See `README.md` for setup and usage instructions.
+
+## Authentication & Authorization
+- Laravel Sanctum for token auth; policies and middleware for RBAC.
+
+### Authentication Process Diagram
+
+The following diagram illustrates the authentication flow, including registration, login, token issuance, authenticated requests, and logout:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant DB
+
+    Client->>API: POST /api/v1/register (user data)
+    API->>DB: Create User & Patient
+    API-->>Client: User & Patient info
+
+    Client->>API: POST /api/v1/login (email, password)
+    API->>DB: Find User, Check Password
+    API-->>Client: Token + User info
+
+    Client->>API: (Authenticated) GET /api/v1/user
+    API->>DB: Get User by Token
+    API-->>Client: User Profile
+
+    Client->>API: POST /api/v1/logout
+    API->>DB: Revoke Token
+    API-->>Client: Logout Success
+```
+
+This process ensures secure, stateless authentication for API clients using Laravel Sanctum. All protected endpoints require a valid Bearer token, and role-based access is enforced via policies and middleware. 

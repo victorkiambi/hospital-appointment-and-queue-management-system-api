@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Appointment;
 use App\Models\Doctor;
 use App\Models\Patient;
+use App\Models\Queue;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Requests\StoreAppointmentRequest;
@@ -142,19 +144,19 @@ class AppointmentController extends Controller
         $appointment->load(['doctor.user', 'patient.user']);
 
         // Auto-add to queue for same-day appointments
-        $scheduledDate = \Carbon\Carbon::parse($appointment->scheduled_at)->toDateString();
-        $today = \Carbon\Carbon::now()->toDateString();
+        $scheduledDate = Carbon::parse($appointment->scheduled_at)->toDateString();
+        $today = Carbon::now()->toDateString();
         if ($scheduledDate === $today) {
-            $exists = \App\Models\Queue::where('doctor_id', $appointment->doctor_id)
+            $exists = Queue::where('doctor_id', $appointment->doctor_id)
                 ->where('patient_id', $appointment->patient_id)
                 ->where('status', 'waiting')
                 ->exists();
             if (!$exists) {
-                $maxPosition = \App\Models\Queue::where('doctor_id', $appointment->doctor_id)
+                $maxPosition = Queue::where('doctor_id', $appointment->doctor_id)
                     ->where('status', 'waiting')
                     ->max('position');
                 $position = $maxPosition ? $maxPosition + 1 : 1;
-                \App\Models\Queue::create([
+                Queue::create([
                     'doctor_id' => $appointment->doctor_id,
                     'patient_id' => $appointment->patient_id,
                     'position' => $position,
@@ -232,7 +234,7 @@ class AppointmentController extends Controller
         $this->authorize('delete', $appointment);
 
         // Remove related queue entry if it exists
-        \App\Models\Queue::where('doctor_id', $appointment->doctor_id)
+        Queue::where('doctor_id', $appointment->doctor_id)
             ->where('patient_id', $appointment->patient_id)
             ->where('status', 'waiting')
             ->delete();
@@ -252,7 +254,7 @@ class AppointmentController extends Controller
     {
         if (!$doctor->availability) return false;
         $availability = is_array($doctor->availability) ? $doctor->availability : json_decode($doctor->availability, true);
-        $dt = \Carbon\Carbon::parse($datetime);
+        $dt = Carbon::parse($datetime);
         $day = $dt->format('l'); // e.g., 'Monday'
         $time = $dt->format('H:i');
         foreach ($availability as $slot) {
