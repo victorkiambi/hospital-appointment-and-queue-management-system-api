@@ -9,6 +9,14 @@ paths:
   /register:
     post:
       summary: Register a new user
+      description: |
+        Registers a new user (admin, doctor, or patient).
+        
+        **Doctor creation is a two-step process:**
+        1. Register a user with role 'doctor' using this endpoint.
+        2. Create a doctor profile using the /doctors endpoint with the returned user_id.
+        
+        See /doctors POST for details on the second step.
       requestBody:
         required: true
         content:
@@ -82,9 +90,20 @@ paths:
                     type: object
                     nullable: true
     post:
-      summary: Create doctor
-      description: >
-        Creates a new doctor. Requires authentication via Bearer token (admin only).
+      summary: Create doctor profile (step 2 of doctor creation)
+      description: |
+        Creates a new doctor profile. Requires authentication via Bearer token (admin only).
+        
+        **Doctor creation is a two-step process:**
+        1. Register a user with role 'doctor' using the /register endpoint.
+        2. Create a doctor profile using this endpoint with the returned user_id.
+        
+        Alternatively, an admin can use a combined endpoint (e.g., /admin/doctors) to create both the user and doctor profile in a single request.
+        
+        **Validation notes:**
+        - user_id must reference a user with role 'doctor'.
+        - user_id must be unique in the doctors table.
+        - specialization is required.
       security:
         - bearerAuth: []
       requestBody:
@@ -95,15 +114,27 @@ paths:
               type: object
               required: [user_id, specialization]
               properties:
-                user_id: { type: integer }
+                user_id: { type: integer, description: 'ID of a user with role doctor' }
                 specialization: { type: string }
                 availability: { type: object }
-            example:
-              user_id: 2
-              specialization: 'Cardiology'
-              availability:
-                monday: ['09:00-12:00', '14:00-17:00']
-                tuesday: ['09:00-12:00']
+            examples:
+              two_step:
+                summary: Two-step approach
+                value:
+                  user_id: 2
+                  specialization: 'Cardiology'
+                  availability:
+                    monday: ['09:00-12:00', '14:00-17:00']
+                    tuesday: ['09:00-12:00']
+              combined:
+                summary: Combined admin approach
+                value:
+                  name: 'Dr. Jane Smith'
+                  email: 'jane.smith@hospital.com'
+                  password: 'securepassword'
+                  specialization: 'Cardiology'
+                  availability:
+                    monday: ['09:00-12:00', '14:00-17:00']
       responses:
         '201':
           description: Doctor created
@@ -332,7 +363,7 @@ paths:
     get:
       summary: List appointments (filterable)
       description: >
-        Returns a list of appointments. Supports filtering by doctor_id and patient_id as query parameters.
+        Returns a list of appointments. Supports filtering by doctor_id, patient_id, status, date, date range, and search.
         Requires authentication via Bearer token.
       security:
         - bearerAuth: []
@@ -347,6 +378,44 @@ paths:
           schema:
             type: integer
           description: Filter by patient ID
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [scheduled, completed, cancelled]
+          description: Filter by appointment status
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+            example: '2024-03-20'
+          description: Filter by specific date (format: YYYY-MM-DD)
+        - in: query
+          name: scheduled_at_start
+          schema:
+            type: string
+            format: date-time
+            example: '2024-03-20T00:00:00Z'
+          description: Filter by start date and time (format: YYYY-MM-DDThh:mm:ssZ)
+        - in: query
+          name: scheduled_at_end
+          schema:
+            type: string
+            format: date-time
+            example: '2024-03-21T23:59:59Z'
+          description: Filter by end date and time (format: YYYY-MM-DDThh:mm:ssZ)
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by appointment ID, patient name, or doctor name
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 20
+          description: Number of items per page
       responses:
         '200':
           description: List of appointments
@@ -359,6 +428,21 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Appointment'
+                  meta:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Total number of appointments
+                      per_page:
+                        type: integer
+                        description: Number of items per page
+                      current_page:
+                        type: integer
+                        description: Current page number
+                      last_page:
+                        type: integer
+                        description: Last page number
                   message:
                     type: string
                   errors:

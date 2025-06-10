@@ -64,8 +64,17 @@ class AppointmentController extends Controller
             if ($request->has('status')) {
                 $query->where('status', $request->status);
             }
+            // Handle date filtering - maintain backward compatibility
             if ($request->has('date')) {
                 $query->whereDate('scheduled_at', $request->date);
+            } else {
+                // Add date range filtering if no single date is specified
+                if ($request->has('scheduled_at_start')) {
+                    $query->where('scheduled_at', '>=', $request->scheduled_at_start);
+                }
+                if ($request->has('scheduled_at_end')) {
+                    $query->where('scheduled_at', '<=', $request->scheduled_at_end);
+                }
             }
             if ($request->filled('search')) {
                 $search = $request->search;
