@@ -54,12 +54,30 @@ class AppointmentController extends Controller
                 ]);
             }
         } else {
-            // Admin: can filter by doctor_id or patient_id if provided
+            // Admin: can filter by doctor_id, patient_id, status, date, and search
             if ($request->has('doctor_id')) {
                 $query->where('doctor_id', $request->doctor_id);
             }
             if ($request->has('patient_id')) {
                 $query->where('patient_id', $request->patient_id);
+            }
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+            if ($request->has('date')) {
+                $query->whereDate('scheduled_at', $request->date);
+            }
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('id', $search)
+                        ->orWhereHas('patient.user', function ($q2) use ($search) {
+                            $q2->where('name', 'like', "%$search%");
+                        })
+                        ->orWhereHas('doctor.user', function ($q3) use ($search) {
+                            $q3->where('name', 'like', "%$search%");
+                        });
+                });
             }
         }
 

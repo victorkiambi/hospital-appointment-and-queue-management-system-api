@@ -29,8 +29,16 @@ class AppointmentControllerTest extends TestCase
     {
         [$user, $token] = $this->authenticateAs('patient');
         $patient = Patient::factory()->create(['user_id' => $user->id]);
-        $doctor = Doctor::factory()->create();
         $slot = now()->addDay()->setTime(10, 0);
+        $doctor = Doctor::factory()->create([
+            'availability' => json_encode([
+                [
+                    'day' => $slot->format('l'),
+                    'start' => $slot->format('H:i'),
+                    'end' => $slot->copy()->addHour()->format('H:i'),
+                ],
+            ]),
+        ]);
         // First booking should succeed
         $response1 = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/appointments', [
